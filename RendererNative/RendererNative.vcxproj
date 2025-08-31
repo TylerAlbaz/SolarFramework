@@ -1,0 +1,256 @@
+<?xml version="1.0" encoding="utf-8"?>
+<Project DefaultTargets="Build" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <ItemGroup Label="ProjectConfigurations">
+    <ProjectConfiguration Include="Debug|Win32">
+      <Configuration>Debug</Configuration>
+      <Platform>Win32</Platform>
+    </ProjectConfiguration>
+    <ProjectConfiguration Include="Release|Win32">
+      <Configuration>Release</Configuration>
+      <Platform>Win32</Platform>
+    </ProjectConfiguration>
+    <ProjectConfiguration Include="Debug|x64">
+      <Configuration>Debug</Configuration>
+      <Platform>x64</Platform>
+    </ProjectConfiguration>
+    <ProjectConfiguration Include="Release|x64">
+      <Configuration>Release</Configuration>
+      <Platform>x64</Platform>
+    </ProjectConfiguration>
+  </ItemGroup>
+  <PropertyGroup Label="UserMacros">
+    <!-- Prefer the env var when it's available -->
+    <VulkanGlslc>$(VULKAN_SDK)\Bin\glslc.exe</VulkanGlslc>
+  </PropertyGroup>
+  <!-- Fallback to your local path if the env var isn't set -->
+  <PropertyGroup>
+    <VulkanGlslc Condition=" '$(VulkanGlslc)' == '' ">E:\Vulkan\Bin\glslc.exe</VulkanGlslc>
+  </PropertyGroup>
+  <PropertyGroup Label="Globals">
+    <VCProjectVersion>17.0</VCProjectVersion>
+    <Keyword>Win32Proj</Keyword>
+    <ProjectGuid>{dd26ea36-4a9b-4ae0-bef5-0213c24ba1a3}</ProjectGuid>
+    <RootNamespace>RendererNative</RootNamespace>
+    <WindowsTargetPlatformVersion>10.0</WindowsTargetPlatformVersion>
+  </PropertyGroup>
+  <Import Project="$(VCTargetsPath)\Microsoft.Cpp.Default.props" />
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'" Label="Configuration">
+    <ConfigurationType>DynamicLibrary</ConfigurationType>
+    <UseDebugLibraries>true</UseDebugLibraries>
+    <PlatformToolset>v143</PlatformToolset>
+    <CharacterSet>Unicode</CharacterSet>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'" Label="Configuration">
+    <ConfigurationType>DynamicLibrary</ConfigurationType>
+    <UseDebugLibraries>false</UseDebugLibraries>
+    <PlatformToolset>v143</PlatformToolset>
+    <WholeProgramOptimization>true</WholeProgramOptimization>
+    <CharacterSet>Unicode</CharacterSet>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'" Label="Configuration">
+    <ConfigurationType>DynamicLibrary</ConfigurationType>
+    <UseDebugLibraries>true</UseDebugLibraries>
+    <PlatformToolset>v143</PlatformToolset>
+    <CharacterSet>Unicode</CharacterSet>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'" Label="Configuration">
+    <ConfigurationType>DynamicLibrary</ConfigurationType>
+    <UseDebugLibraries>false</UseDebugLibraries>
+    <PlatformToolset>v143</PlatformToolset>
+    <WholeProgramOptimization>true</WholeProgramOptimization>
+    <CharacterSet>Unicode</CharacterSet>
+  </PropertyGroup>
+  <Import Project="$(VCTargetsPath)\Microsoft.Cpp.props" />
+  <ImportGroup Label="ExtensionSettings">
+  </ImportGroup>
+  <ImportGroup Label="Shared">
+  </ImportGroup>
+  <ImportGroup Label="PropertySheets" Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
+    <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
+    <Import Project="E:\Vulkan\VulkanSdkRoot.props" />
+  </ImportGroup>
+  <ImportGroup Label="PropertySheets" Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
+    <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
+    <Import Project="E:\Vulkan\VulkanSdkRoot.props" />
+  </ImportGroup>
+  <ImportGroup Label="PropertySheets" Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
+    <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
+    <Import Project="E:\Vulkan\VulkanSdkRoot.props" />
+  </ImportGroup>
+  <ImportGroup Label="PropertySheets" Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
+    <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
+    <Import Project="E:\Vulkan\VulkanSdkRoot.props" />
+  </ImportGroup>
+  <PropertyGroup Label="UserMacros" />
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
+    <PostBuildEventUseInBuild>false</PostBuildEventUseInBuild>
+  </PropertyGroup>
+  <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
+    <ClCompile>
+      <WarningLevel>Level3</WarningLevel>
+      <SDLCheck>true</SDLCheck>
+      <PreprocessorDefinitions>WIN32;_DEBUG;RENDERERNATIVE_EXPORTS;_WINDOWS;_USRDLL;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <ConformanceMode>true</ConformanceMode>
+      <PrecompiledHeader>Use</PrecompiledHeader>
+      <PrecompiledHeaderFile>pch.h</PrecompiledHeaderFile>
+    </ClCompile>
+    <Link>
+      <SubSystem>Windows</SubSystem>
+      <GenerateDebugInformation>true</GenerateDebugInformation>
+      <EnableUAC>false</EnableUAC>
+    </Link>
+  </ItemDefinitionGroup>
+  <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
+    <ClCompile>
+      <WarningLevel>Level3</WarningLevel>
+      <FunctionLevelLinking>true</FunctionLevelLinking>
+      <IntrinsicFunctions>true</IntrinsicFunctions>
+      <SDLCheck>true</SDLCheck>
+      <PreprocessorDefinitions>WIN32;NDEBUG;RENDERERNATIVE_EXPORTS;_WINDOWS;_USRDLL;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <ConformanceMode>true</ConformanceMode>
+      <PrecompiledHeader>Use</PrecompiledHeader>
+      <PrecompiledHeaderFile>pch.h</PrecompiledHeaderFile>
+    </ClCompile>
+    <Link>
+      <SubSystem>Windows</SubSystem>
+      <GenerateDebugInformation>true</GenerateDebugInformation>
+      <EnableUAC>false</EnableUAC>
+    </Link>
+  </ItemDefinitionGroup>
+  <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
+    <ClCompile>
+      <WarningLevel>Level3</WarningLevel>
+      <SDLCheck>true</SDLCheck>
+      <PreprocessorDefinitions>VK_USE_PLATFORM_WIN32_KHR;WIN32_LEAN_AND_MEAN;_CRT_SECURE_NO_WARNINGS;_DEBUG;RENDERERNATIVE_EXPORTS;_WINDOWS;_USRDLL;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <ConformanceMode>true</ConformanceMode>
+      <PrecompiledHeader>NotUsing</PrecompiledHeader>
+      <PrecompiledHeaderFile>pch.h</PrecompiledHeaderFile>
+      <ExceptionHandling>false</ExceptionHandling>
+      <RuntimeLibrary>MultiThreadedDebug</RuntimeLibrary>
+      <LanguageStandard>stdcpp17</LanguageStandard>
+      <AdditionalIncludeDirectories>$(ProjectDir)Shaders;$(IntDir);%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+    </ClCompile>
+    <Link>
+      <SubSystem>Windows</SubSystem>
+      <GenerateDebugInformation>true</GenerateDebugInformation>
+      <EnableUAC>false</EnableUAC>
+      <AdditionalLibraryDirectories>E:\Vulkan\Lib</AdditionalLibraryDirectories>
+      <AdditionalDependencies>vulkan-1.lib;User32.lib;$(CoreLibraryDependencies);%(AdditionalDependencies)</AdditionalDependencies>
+    </Link>
+    <PostBuildEvent>
+      <Command>
+      </Command>
+    </PostBuildEvent>
+    <PreBuildEvent>
+      <Command>if not exist "$(IntDir)shaders" mkdir "$(IntDir)shaders"</Command>
+    </PreBuildEvent>
+  </ItemDefinitionGroup>
+  <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
+    <ClCompile>
+      <WarningLevel>Level3</WarningLevel>
+      <FunctionLevelLinking>true</FunctionLevelLinking>
+      <IntrinsicFunctions>true</IntrinsicFunctions>
+      <SDLCheck>true</SDLCheck>
+      <PreprocessorDefinitions>NDEBUG;RENDERERNATIVE_EXPORTS;_WINDOWS;_USRDLL;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <ConformanceMode>true</ConformanceMode>
+      <PrecompiledHeader>Use</PrecompiledHeader>
+      <PrecompiledHeaderFile>pch.h</PrecompiledHeaderFile>
+      <AdditionalIncludeDirectories>$(ProjectDir)Shaders;$(IntDir);%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+    </ClCompile>
+    <Link>
+      <SubSystem>Windows</SubSystem>
+      <GenerateDebugInformation>true</GenerateDebugInformation>
+      <EnableUAC>false</EnableUAC>
+    </Link>
+    <PreBuildEvent>
+      <Command>if not exist "$(IntDir)shaders" mkdir "$(IntDir)shaders"</Command>
+    </PreBuildEvent>
+  </ItemDefinitionGroup>
+  <ItemGroup>
+    <ClInclude Include="c_api.h" />
+    <ClInclude Include="framework.h" />
+    <ClInclude Include="pch.h" />
+    <ClInclude Include="renderer_api.h" />
+  </ItemGroup>
+  <ItemGroup>
+    <ClCompile Include="dllmain.cpp" />
+    <ClCompile Include="pch.cpp">
+      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Release|x64'">Create</PrecompiledHeader>
+      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">Create</PrecompiledHeader>
+      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">Create</PrecompiledHeader>
+      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">Create</PrecompiledHeader>
+    </ClCompile>
+    <ClCompile Include="renderer_api.cpp">
+      <AdditionalIncludeDirectories Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">E:\Vulkan\Include;$(ProjectDir)RendererNative\Shaders;$(IntDir);%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+    </ClCompile>
+  </ItemGroup>
+  <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
+  <ImportGroup Label="ExtensionTargets">
+  </ImportGroup>
+  <PropertyGroup>
+    <GameSolarOutA>$(SolutionDir)Game.Solar\bin\$(Configuration)\net8.0-windows\</GameSolarOutA>
+    <GameSolarOutB>$(SolutionDir)Game.Solar\bin\$(Platform)\$(Configuration)\net8.0-windows\</GameSolarOutB>
+  </PropertyGroup>
+  <ItemGroup>
+    <NativeRuntimeFiles Include="$(TargetPath)" />
+    <NativeRuntimeFiles Include="$(TargetDir)RendererNative.pdb" Condition="'$(Configuration)'=='Debug' and Exists('$(TargetDir)RendererNative.pdb')" />
+  </ItemGroup>
+  <Target Name="CopyNativeToGame" AfterTargets="Build">
+    <MakeDir Directories="$(GameSolarOutA)" />
+    <MakeDir Directories="$(GameSolarOutB)" />
+    <Copy SourceFiles="@(NativeRuntimeFiles)" DestinationFolder="$(GameSolarOutA)" SkipUnchangedFiles="true" />
+    <Copy SourceFiles="@(NativeRuntimeFiles)" DestinationFolder="$(GameSolarOutB)" SkipUnchangedFiles="true" />
+  </Target>
+  <ItemGroup>
+    <ShaderSrc Include="shaders\vs_ndc_passthrough.vert" />
+    <ShaderSrc Include="shaders\fs_solid_color.frag" />
+  </ItemGroup>
+	<!-- ==== SHADER COMPILE & EMBED (works in Debug/Release x64) ==== -->
+	<PropertyGroup Label="ShaderTools">
+		<!-- glslc from Vulkan SDK -->
+		<VulkanGlslc>$(VULKAN_SDK)\Bin\glslc.exe</VulkanGlslc>
+		<!-- full path to PowerShell to avoid 9009 -->
+		<PSEXE>$(SystemRoot)\System32\WindowsPowerShell\v1.0\powershell.exe</PSEXE>
+		<!-- temp SPIR-V output dir -->
+		<SpvDir>$(IntDir)spv\</SpvDir>
+	</PropertyGroup>
+
+	<ItemGroup>
+		<CustomBuild Include="Shaders\fs_solid_color.frag">
+			<FileType>Document</FileType>
+			<Command>
+				"@(CustomBuild->'%(FullPath)')" &gt; NUL
+				&quot;$(PSEXE)&quot; -NoProfile -ExecutionPolicy Bypass -Command ^
+				$in='%(FullPath)'; ^
+				$spv='$(SpvDir)fs_solid_color.spv'; ^
+				$inc='$(ProjectDir)shaders\fs_solid_color.spv.inc'; ^
+				&quot;$(VulkanGlslc)&quot; -o &quot;$spv&quot; &quot;$in&quot;; ^
+				$b=[IO.File]::ReadAllBytes($spv); ^
+				$u = for($i=0;$i -lt $b.Length;$i+=4){[BitConverter]::ToUInt32($b,$i)}; ^
+				[IO.File]::WriteAllText($inc, ($u -join ', '))
+			</Command>
+			<Outputs>$(ProjectDir)shaders\fs_solid_color.spv.inc;$(SpvDir)fs_solid_color.spv</Outputs>
+			<AdditionalInputs>$(VulkanGlslc)</AdditionalInputs>
+			<Message>Compiling %(Filename)%(Extension) to SPIR-V and embedding</Message>
+		</CustomBuild>
+
+		<CustomBuild Include="Shaders\vs_ndc_passthrough.vert">
+			<FileType>Document</FileType>
+			<Command>
+				"@(CustomBuild->'%(FullPath)')" &gt; NUL
+				&quot;$(PSEXE)&quot; -NoProfile -ExecutionPolicy Bypass -Command ^
+				$in='%(FullPath)'; ^
+				$spv='$(SpvDir)vs_ndc_passthrough.spv'; ^
+				$inc='$(ProjectDir)shaders\vs_ndc_passthrough.spv.inc'; ^
+				&quot;$(VulkanGlslc)&quot; -o &quot;$spv&quot; &quot;$in&quot;; ^
+				$b=[IO.File]::ReadAllBytes($spv); ^
+				$u = for($i=0;$i -lt $b.Length;$i+=4){[BitConverter]::ToUInt32($b,$i)}; ^
+				[IO.File]::WriteAllText($inc, ($u -join ', '))
+			</Command>
+			<Outputs>$(ProjectDir)shaders\vs_ndc_passthrough.spv.inc;$(SpvDir)vs_ndc_passthrough.spv</Outputs>
+			<AdditionalInputs>$(VulkanGlslc)</AdditionalInputs>
+			<Message>Compiling %(Filename)%(Extension) to SPIR-V and embedding</Message>
+		</CustomBuild>
+	</ItemGroup>
+
+</Project>
