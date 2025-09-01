@@ -362,22 +362,27 @@ MigrationBackup/
 # Fody - auto-generated XML schema
 FodyWeavers.xsd
 
-# VS / .NET
+# VS / dotnet
 .vs/
+**/bin/
+**/obj/
 *.user
-*.suo
-bin/
-obj/
-x64/
-x86/
+*.rsuser
 
-# Native build
-Debug/
-Release/
-*.pdb
-*.ipch
-*.tlog
+# VC++ intermediates
+**/Debug*/
+**/Release*/
+**/x64/
+**/ipch/
+*.log
+
+# Native outputs
+**/*.dll
+**/*.pdb
+**/*.ilk
+**/*.exp
+**/*.lib
 
 # Shaders (generated)
-**/*.spv
-**/*.spv.inc
+RendererNative/Shaders/**/*.spv
+RendererNative/Shaders/**/*.spv.inc
