@@ -43,11 +43,33 @@
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
-    <CustomBuild Include="Shaders\fs_solid_color.frag">
+    <None Include="Shaders\vs_ndc_passthrough.vert">
       <Filter>Shaders</Filter>
-    </CustomBuild>
-    <CustomBuild Include="Shaders\vs_ndc_passthrough.vert">
+    </None>
+    <None Include="Shaders\**\*.vert">
       <Filter>Shaders</Filter>
-    </CustomBuild>
+    </None>
+    <None Include="Shaders\vs_ndc_passthrough.vert" />
+    <None Include="Shaders\**\*.vert">
+      <Filter>Shaders</Filter>
+    </None>
+    <None Include="Shaders\build_shaders.cmd">
+      <Filter>Shaders</Filter>
+    </None>
+    <None Include="Shaders\build_shaders.ps1">
+      <Filter>Shaders</Filter>
+    </None>
+    <None Include="Shaders\fs_solid_color.frag">
+      <Filter>Shaders</Filter>
+    </None>
+    <None Include="Shaders\ShaderBuild.targets">
+      <Filter>Shaders</Filter>
+    </None>
+    <None Include="Shaders\vs_lines_world.vert">
+      <Filter>Shaders</Filter>
+    </None>
+    <None Include="Shaders\vs_ndc_passthrough.vert">
+      <Filter>Shaders</Filter>
+    </None>
   </ItemGroup>
 </Project>
