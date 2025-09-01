@@ -361,3 +361,33 @@ MigrationBackup/
 
 # Fody - auto-generated XML schema
 FodyWeavers.xsd
+
+# VS / .NET
+.vs/
+**/bin/
+**/obj/
+**/Debug/
+**/Release/
+**/x64/
+**/x86/
+*.user
+*.suo
+*.VC.db
+*.opendb
+*.ipch/
+
+# NuGet
+packages/
+
+# OS
+Thumbs.db
+.DS_Store
+
+# Vulkan shader artifacts
+# keep sources + .ps1, ignore raw .spv; *optionally* keep .spv.inc
+RendererNative/Shaders/*.spv
+!RendererNative/Shaders/*.frag
+!RendererNative/Shaders/*.vert
+!RendererNative/Shaders/build_shaders.ps1
+# If you want to check in the generated headers (recommended for now):
+!RendererNative/Shaders/*.spv.inc

@@ -1,0 +1,18 @@
+<Project xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <!-- Path to your script -->
+  <PropertyGroup>
+    <ShaderScript>$(ProjectDir)Shaders\build_shaders.cmd</ShaderScript>
+  </PropertyGroup>
+
+  <!-- Run before compiling C/C++ files -->
+  <Target Name="BuildShaders"
+          BeforeTargets="ClCompile"
+          Condition="Exists('$(ShaderScript)')">
+    <Message Importance="High" Text="Building shaders: $(ShaderScript)"/>
+    <!-- Run the script; never fail the build -->
+    <Exec Command="&quot;$(ShaderScript)&quot;"
+          IgnoreExitCode="true"
+          StandardOutputImportance="High"
+          StandardErrorImportance="High"/>
+  </Target>
+</Project>
