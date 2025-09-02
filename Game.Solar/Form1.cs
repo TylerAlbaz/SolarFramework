@@ -1,6 +1,7 @@
 using System;
+using System.Diagnostics;
 using System.Windows.Forms;
-using Framework.Renderer;
+using Framework.Renderer; // Renderer
 
 namespace Game.Solar
 {
@@ -13,24 +14,18 @@ namespace Game.Solar
         {
             InitializeComponent();
             Text = "Hello-Interop";
-            DoubleBuffered = true;
+            DoubleBuffered = false;
         }
 
         protected override void OnHandleCreated(EventArgs e)
         {
             base.OnHandleCreated(e);
 
-            System.Diagnostics.Debug.WriteLine($"Proc x64: {Environment.Is64BitProcess}");
-            System.Diagnostics.Debug.WriteLine($"BaseDir: {AppContext.BaseDirectory}");
-            System.Diagnostics.Debug.WriteLine(
-                $"DLL exists: {System.IO.File.Exists(System.IO.Path.Combine(AppContext.BaseDirectory, "RendererNative.dll"))}");
+            Debug.WriteLine($"Proc x64: {Environment.Is64BitProcess}");
+            Debug.WriteLine($"BaseDir: {AppContext.BaseDirectory}");
 
-            _renderer = Renderer.Create(
-                hwnd: this.Handle,
-                width: (uint)ClientSize.Width,
-                height: (uint)ClientSize.Height,
-                vsync: false,
-                validation: true);
+            // NEW: single-argument factory (old width/height/vsync/validation removed)
+            _renderer = Renderer.Create(this.Handle);
 
             _running = true;
             Application.Idle += Tick;
@@ -45,9 +40,9 @@ namespace Game.Solar
 
         private void Tick(object? sender, EventArgs e)
         {
-            if (!_running || _renderer is null) return;
+            if (!_running || _renderer == null) return;
 
-            // Clear only (no geometry yet)
+            // simple clear + present (native uses a fixed clear color internally for now)
             _renderer.Begin(0.02f, 0.03f, 0.05f, 1f);
             _renderer.End();
             _renderer.Present();
@@ -55,12 +50,12 @@ namespace Game.Solar
             Invalidate(); // keep WM_PAINT flowing
         }
 
-        protected override void OnFormClosed(FormClosedEventArgs e)
+        protected override void OnHandleDestroyed(EventArgs e)
         {
-            _running = false;
             Application.Idle -= Tick;
             _renderer?.Dispose();
-            base.OnFormClosed(e);
+            _renderer = null;
+            base.OnHandleDestroyed(e);
         }
     }
 }

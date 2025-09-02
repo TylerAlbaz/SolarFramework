@@ -1,185 +1,129 @@
 ﻿// Framework.Renderer/Renderer.cs
 #nullable enable
-#pragma warning disable IDE0002, IDE0051, IDE0060 // style warnings
-
 using System;
-using System.Runtime.InteropServices;
 using System.Diagnostics;
+using System.Runtime.InteropServices;
 
 namespace Framework.Renderer;
 
 public sealed class Renderer : IDisposable
 {
-    // ---------------------------
-    // Native ABI (fmGetRendererAPI, ABI v3)
-    // ---------------------------
-
-    [UnmanagedFunctionPointer(CallingConvention.Cdecl)]
-    private delegate IntPtr FnGetApi(uint abi);                // void* fmGetRendererAPI(uint32_t)
-
-    [StructLayout(LayoutKind.Sequential)]
+    // ---- ABI structs (must match native exactly) ---------------------------
+    [StructLayout(LayoutKind.Sequential, Pack = 8)]
     private struct FwHeaderRaw
     {
         public uint abi_version;
-        public IntPtr GetLastError; // char* (*)()
-        public IntPtr LogCb;        // fw_log_fn (optional)
-        public IntPtr LogUser;      // void* user (optional)
+        public IntPtr get_last_error;  // char* () cdecl
+        public IntPtr log_cb;          // optional
+        public IntPtr log_user;        // optional
     }
 
-    [StructLayout(LayoutKind.Sequential)]
+    [StructLayout(LayoutKind.Sequential, Pack = 8)]
     private struct FwRendererApiRaw
     {
         public FwHeaderRaw Hdr;
 
-        public IntPtr SetLogger;     // void (*)(FnLog cb, void* user)
-        public IntPtr LinesUpload;   // int  (*)(ulong dev, float* xy, uint count, float r,g,b,a)
-        public IntPtr CreateDevice;  // int  (*)(ref FwRendererDesc, out ulong)
-        public IntPtr DestroyDevice; // void (*)(ulong dev)
-        public IntPtr BeginFrame;    // void (*)(ulong dev)
-        public IntPtr EndFrame;      // void (*)(ulong dev)
+        public IntPtr set_logger;      // void (*)(void* cb /*fw_log_fn*/, void* user)
+        public IntPtr create_device;   // int  (*)(const fw_renderer_desc*, fw_handle*)
+        public IntPtr destroy_device;  // void (*)(fw_handle)
+        public IntPtr begin_frame;     // void (*)(fw_handle)
+        public IntPtr end_frame;       // void (*)(fw_handle)
+        public IntPtr lines_upload;    // int  (*)(fw_handle, float* xy, uint count, float r,g,b,a)
     }
 
-    /// <summary>
-    /// Cache projection/view/world matrices (row-major 4x4). Currently a no-op
-    /// on the native side; kept for future UBO upload. Accepts double for
-    /// simulation precision; converted to float for the renderer.
-    /// </summary>
-    public void SetMatrices(double[] proj, double[] view, double[] world)
+    [StructLayout(LayoutKind.Sequential, Pack = 8)]
+    private struct FwRendererDesc
     {
-        SetMatrices((ReadOnlySpan<double>)proj, (ReadOnlySpan<double>)view, (ReadOnlySpan<double>)world);
+        public IntPtr hwnd; // HWND
     }
 
-    public void SetMatrices(ReadOnlySpan<double> proj, ReadOnlySpan<double> view, ReadOnlySpan<double> world)
-    {
-        if (proj.Length < 16 || view.Length < 16 || world.Length < 16)
-            throw new ArgumentException("SetMatrices expects 16 elements for each matrix.");
+    // ---- delegates (cdecl) -------------------------------------------------
+    [UnmanagedFunctionPointer(CallingConvention.Cdecl)] private delegate IntPtr FnGetApi(uint abi);
+    [UnmanagedFunctionPointer(CallingConvention.Cdecl)] private delegate IntPtr FnGetLastError();
+    [UnmanagedFunctionPointer(CallingConvention.Cdecl)] private delegate void FnSetLogger(IntPtr cb, IntPtr user);
+    [UnmanagedFunctionPointer(CallingConvention.Cdecl)] private unsafe delegate int FnLinesUpload(ulong dev, float* xy, uint count, float r, float g, float b, float a);
+    [UnmanagedFunctionPointer(CallingConvention.Cdecl)] private delegate int FnCreateDevice(ref FwRendererDesc desc, out ulong dev);
+    [UnmanagedFunctionPointer(CallingConvention.Cdecl)] private delegate void FnDestroyDevice(ulong dev);
+    [UnmanagedFunctionPointer(CallingConvention.Cdecl)] private delegate void FnBeginFrame(ulong dev);
+    [UnmanagedFunctionPointer(CallingConvention.Cdecl)] private delegate void FnEndFrame(ulong dev);
+    [UnmanagedFunctionPointer(CallingConvention.Cdecl)] private delegate void FnLog(int level, IntPtr msg, IntPtr user);
 
-        CopyDoublesToFloats(proj, _proj);
-        CopyDoublesToFloats(view, _view);
-        CopyDoublesToFloats(world, _world);
-        _matricesDirty = true; // future: trigger UBO upload in Begin()
-    }
-
-    private static void CopyDoublesToFloats(ReadOnlySpan<double> src, float[] dst)
-    {
-        for (int i = 0; i < 16; ++i) dst[i] = (float)src[i];
-    }
-
-    // Mirror of native fm_renderer_desc (current ABI: HWND only)
-    [StructLayout(LayoutKind.Sequential)]
-    public struct FwRendererDesc
-    {
-        public IntPtr hwnd; // HWND on Windows
-    }
-
-    // Function pointer shapes
-    [UnmanagedFunctionPointer(CallingConvention.Cdecl)]
-    private delegate IntPtr FnGetLastError();
-
-    [UnmanagedFunctionPointer(CallingConvention.Cdecl)]
-    private delegate void FnLog(int level, [MarshalAs(UnmanagedType.LPStr)] string msg, IntPtr user);
-
-    [UnmanagedFunctionPointer(CallingConvention.Cdecl)]
-    private delegate void FnSetLogger(FnLog cb, IntPtr user);
-
-    [UnmanagedFunctionPointer(CallingConvention.Cdecl)]
-    private delegate int FnCreateDevice(ref FwRendererDesc desc, out ulong dev);
-
-    [UnmanagedFunctionPointer(CallingConvention.Cdecl)]
-    private delegate void FnDestroyDevice(ulong dev);
-
-    [UnmanagedFunctionPointer(CallingConvention.Cdecl)]
-    private delegate void FnBeginFrame(ulong dev);
-
-    [UnmanagedFunctionPointer(CallingConvention.Cdecl)]
-    private delegate void FnEndFrame(ulong dev);
-
-    [UnmanagedFunctionPointer(CallingConvention.Cdecl)]
-    private unsafe delegate int FnLinesUpload(ulong dev, float* xy, uint count, float r, float g, float b, float a);
-
-    // ---------------------------
-    // Managed state
-    // ---------------------------
-
+    // ---- instance state ----------------------------------------------------
     private IntPtr _lib;
     private FwRendererApiRaw _raw;
 
-    private FnGetLastError? _getLastErr;
-    private FnSetLogger? _setLogger;
-    private FnCreateDevice? _create;
-    private FnDestroyDevice? _destroy;
-    private FnBeginFrame? _begin;
-    private FnEndFrame? _end;
-    private unsafe FnLinesUpload? _linesUpload;
+    private FnGetLastError _getLastErr = default!;
+    private FnSetLogger _setLogger = default!;
+    private FnCreateDevice _create = default!;
+    private FnDestroyDevice _destroy = default!;
+    private FnBeginFrame _begin = default!;
+    private FnEndFrame _end = default!;
+    private FnLinesUpload _linesUpload = default!;
+    private FnLog _logDelegate = default!; // keep rooted
 
-    // --- camera/world matrices (cached; not used by native yet) ---
-    private readonly float[] _proj = { 1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1 };
-    private readonly float[] _view = { 1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1 };
-    private readonly float[] _world = { 1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1 };
-    private bool _matricesDirty;
-
-    // Keep the logger delegate rooted
-    private FnLog? _logDelegate;
-
-    public ulong Device { get; private set; }
-
-    // ---------------------------
-    // Construction / teardown
-    // ---------------------------
+    private ulong Device { get; set; }
 
     private Renderer() { }
 
-    /// <summary>
-    /// Load the native DLL, bind the API table, and create the renderer device for this HWND.
-    /// Extra parameters are accepted for future ABI expansion but currently unused by native code.
-    /// </summary>
-    public static Renderer Create(IntPtr hwnd, uint width = 0, uint height = 0, bool vsync = false, bool validation = true)
+    // ---- factory -----------------------------------------------------------
+    public static Renderer Create(IntPtr hwnd)
     {
         var r = new Renderer();
 
-        // Load native library
-        r._lib = NativeLibrary.Load("RendererNative");
+        // 1) Load native DLL
+        if (!NativeLibrary.TryLoad("RendererNative", out r._lib))
+            throw new DllNotFoundException("Could not load RendererNative.dll.");
 
-        // Look up the unified export. Fall back to fwGetRendererAPI if present.
-        IntPtr sym = IntPtr.Zero;
-        try { sym = NativeLibrary.GetExport(r._lib, "fmGetRendererAPI"); } catch { /* ignore */ }
-        if (sym == IntPtr.Zero)
-        {
-            try { sym = NativeLibrary.GetExport(r._lib, "fwGetRendererAPI"); } catch { /* ignore */ }
-        }
-        if (sym == IntPtr.Zero)
-        {
-            r.Dispose();
-            throw new EntryPointNotFoundException("Neither 'fmGetRendererAPI' nor 'fwGetRendererAPI' found in RendererNative.dll");
-        }
+        // 2) Resolve fmGetRendererAPI / fwGetRendererAPI symbol
+        if (!TryGetExport(r._lib, "fmGetRendererAPI", out var sym) &&
+            !TryGetExport(r._lib, "fwGetRendererAPI", out sym))
+            throw new EntryPointNotFoundException("Could not find fmGetRendererAPI or fwGetRendererAPI.");
 
         var getApi = Marshal.GetDelegateForFunctionPointer<FnGetApi>(sym);
         IntPtr apiPtr = getApi(3); // ABI v3
         if (apiPtr == IntPtr.Zero)
+            throw new InvalidOperationException("ABI v3 not available.");
+
+        // 3) Marshal table & bind delegates (ORDER MUST MATCH THE NATIVE HEADER)
+        r._raw = Marshal.PtrToStructure<FwRendererApiRaw>(apiPtr)!;
+
+        Debug.WriteLine($"[interop] API table @ 0x{apiPtr.ToInt64():X}");
+        Debug.WriteLine($"[interop]   get_last_error @ 0x{r._raw.Hdr.get_last_error.ToInt64():X}");
+        Debug.WriteLine($"[interop]   set_logger    @ 0x{r._raw.set_logger.ToInt64():X}");
+        Debug.WriteLine($"[interop]   create_device @ 0x{r._raw.create_device.ToInt64():X}");
+        Debug.WriteLine($"[interop]   destroy_device@ 0x{r._raw.destroy_device.ToInt64():X}");
+        Debug.WriteLine($"[interop]   begin_frame   @ 0x{r._raw.begin_frame.ToInt64():X}");
+        Debug.WriteLine($"[interop]   end_frame     @ 0x{r._raw.end_frame.ToInt64():X}");
+        Debug.WriteLine($"[interop]   lines_upload  @ 0x{r._raw.lines_upload.ToInt64():X}");
+
+        r._getLastErr = GetDel<FnGetLastError>(r._raw.Hdr.get_last_error, nameof(FnGetLastError));
+        r._setLogger = GetDel<FnSetLogger>(r._raw.set_logger, nameof(FnSetLogger));
+        r._create = GetDel<FnCreateDevice>(r._raw.create_device, nameof(FnCreateDevice));
+        r._destroy = GetDel<FnDestroyDevice>(r._raw.destroy_device, nameof(FnDestroyDevice));
+        r._begin = GetDel<FnBeginFrame>(r._raw.begin_frame, nameof(FnBeginFrame));
+        r._end = GetDel<FnEndFrame>(r._raw.end_frame, nameof(FnEndFrame));
+        r._linesUpload = GetDel<FnLinesUpload>(r._raw.lines_upload, nameof(FnLinesUpload));
+
+        static T GetDel<T>(IntPtr p, string name) where T : Delegate
         {
-            r.Dispose();
-            throw new InvalidOperationException("RendererNative: ABI v3 not available.");
+            if (p == IntPtr.Zero)
+                throw new EntryPointNotFoundException($"Function pointer for {name} is null (ABI mismatch).");
+            return Marshal.GetDelegateForFunctionPointer<T>(p);
         }
 
-        // Marshal the raw function table and bind delegates
-        r._raw = Marshal.PtrToStructure<FwRendererApiRaw>(apiPtr);
-        r._getLastErr = Marshal.GetDelegateForFunctionPointer<FnGetLastError>(r._raw.Hdr.GetLastError);
-        r._setLogger = Marshal.GetDelegateForFunctionPointer<FnSetLogger>(r._raw.SetLogger);
-        r._create = Marshal.GetDelegateForFunctionPointer<FnCreateDevice>(r._raw.CreateDevice);
-        r._destroy = Marshal.GetDelegateForFunctionPointer<FnDestroyDevice>(r._raw.DestroyDevice);
-        r._begin = Marshal.GetDelegateForFunctionPointer<FnBeginFrame>(r._raw.BeginFrame);
-        r._end = Marshal.GetDelegateForFunctionPointer<FnEndFrame>(r._raw.EndFrame);
-        r._linesUpload = Marshal.GetDelegateForFunctionPointer<FnLinesUpload>(r._raw.LinesUpload);
+        // 4) Install logger (keep delegate alive)
+        r._logDelegate = (lvl, msg, _) =>
+        {
+            string text = msg != IntPtr.Zero ? Marshal.PtrToStringAnsi(msg)! : "<null>";
+            Debug.WriteLine($"[native {lvl}] {text}");
+        };
+        IntPtr logFnPtr = Marshal.GetFunctionPointerForDelegate(r._logDelegate);
+        r._setLogger(logFnPtr, IntPtr.Zero);
+        Debug.WriteLine("[interop] Logger installed (ABI v3).");
 
-        // Install a simple logger (kept rooted via _logDelegate)
-        r._logDelegate = (lvl, msg, _) => Debug.WriteLine($"[native {lvl}] {msg}");
-        r._setLogger!(r._logDelegate, IntPtr.Zero);
-
-        // Create native device (current desc carries only hwnd)
+        // 5) Create device
         var desc = new FwRendererDesc { hwnd = hwnd };
-
-        ulong dev;
-        int rc = r._create!(ref desc, out dev);
+        int rc = r._create(ref desc, out var dev);
         if (rc != 0 || dev == 0)
         {
             string err = r.Err();
@@ -191,54 +135,73 @@ public sealed class Renderer : IDisposable
         return r;
     }
 
-    // ---------------------------
-    // Public API
-    // ---------------------------
+    // ---- public facade -----------------------------------------------------
+    public void Begin(float r, float g, float b, float a) => _begin(Device);
+    public void End() => _end(Device);
+    public void Present() => End();          // native presents in End()
+    public void Resize(uint w, uint h) { }   // native recreates swapchain by HWND size
 
+    public unsafe void DrawLines(float[] xyz, int count, float r, float g, float b, float a, float widthPx = 1f)
+    {
+        if (xyz is null || count <= 0) return;
+        if (xyz.Length < count * 2)
+            throw new ArgumentException("xyz must contain 2*count floats (x,y per vertex).", nameof(xyz));
+
+        fixed (float* p = xyz)
+            _linesUpload(Device, p, (uint)count, r, g, b, a);
+    }
+
+    // ---- camera matrices (optional; stored for future UBO path) ---------------
+    private static readonly double[] s_identity = new double[]
+    {
+    1,0,0,0,
+    0,1,0,0,
+    0,0,1,0,
+    0,0,0,1
+    };
+
+    private double[] _mView = (double[])s_identity.Clone();
+    private double[] _mProj = (double[])s_identity.Clone();
+    private double[] _mWorld = (double[])s_identity.Clone();
+
+    /// <summary>
+    /// Provide 4x4 row-major matrices (length 16 each). Stored only for now;
+    /// native path ignores them until we wire the UBO pipeline.
+    /// </summary>
+    public void SetMatrices(double[] view, double[] proj, double[] world)
+    {
+        if (view is null || view.Length != 16) throw new ArgumentException("view must be 16 elements", nameof(view));
+        if (proj is null || proj.Length != 16) throw new ArgumentException("proj must be 16 elements", nameof(proj));
+        if (world is null || world.Length != 16) throw new ArgumentException("world must be 16 elements", nameof(world));
+
+        // keep copies to avoid external mutation
+        _mView = (double[])view.Clone();
+        _mProj = (double[])proj.Clone();
+        _mWorld = (double[])world.Clone();
+    }
+
+    // (kept: your stored matrices & SetMatrices(...) if you’re using them later)
+
+    // ---- helpers -----------------------------------------------------------
     public string Err()
     {
         try
         {
-            IntPtr p = _getLastErr?.Invoke() ?? IntPtr.Zero;
-            return p != IntPtr.Zero ? (Marshal.PtrToStringAnsi(p) ?? string.Empty) : string.Empty;
+            var p = _getLastErr != null ? _getLastErr() : IntPtr.Zero;
+            return p != IntPtr.Zero ? Marshal.PtrToStringAnsi(p)! : "<no error>";
         }
-        catch { return string.Empty; }
-    }
-
-    /// <summary>Resize hook — currently handled natively from the HWND; kept for future expansion.</summary>
-    public void Resize(uint w, uint h) { /* no-op for now */ }
-
-    /// <summary>Begin a frame (color parameters are currently unused by native; kept for call-site stability).</summary>
-    public void Begin(float r, float g, float b, float a) => _begin?.Invoke(Device);
-
-    /// <summary>Finish the frame; present happens inside native EndFrame.</summary>
-    public void End() => _end?.Invoke(Device);
-
-    /// <summary>No-op: present is driven by native swapchain submit in End().</summary>
-    public void Present() { /* no-op */ }
-
-    /// <summary>Upload a line list in NDC: xy = [x0,y0, x1,y1, ...], count = pairs.</summary>
-    public unsafe void DrawLines(ReadOnlySpan<float> xy, int count, float r, float g, float b, float a, float widthPx = 1f)
-    {
-        if (Device == 0 || count <= 0 || xy.Length < count * 2) return;
-        fixed (float* p = xy)
-        {
-            _ = _linesUpload?.Invoke(Device, p, (uint)count, r, g, b, a);
-        }
+        catch { return "<error reading native error string>"; }
     }
 
     public void Dispose()
     {
-        try
-        {
-            if (Device != 0) { _destroy?.Invoke(Device); Device = 0; }
-        }
-        catch { /* swallow on dispose */ }
-        _logDelegate = null;
-        if (_lib != IntPtr.Zero)
-        {
-            try { NativeLibrary.Free(_lib); } catch { }
-            _lib = IntPtr.Zero;
-        }
+        try { if (Device != 0) _destroy(Device); } catch { } finally { Device = 0; }
+        if (_lib != IntPtr.Zero) { try { NativeLibrary.Free(_lib); } catch { } _lib = IntPtr.Zero; }
+    }
+
+    private static bool TryGetExport(IntPtr lib, string name, out IntPtr symbol)
+    {
+        try { symbol = NativeLibrary.GetExport(lib, name); return symbol != IntPtr.Zero; }
+        catch { symbol = IntPtr.Zero; return false; }
     }
 }

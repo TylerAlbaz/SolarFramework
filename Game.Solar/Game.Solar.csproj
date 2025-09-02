@@ -1,17 +1,57 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
 
-  <PropertyGroup>
-    <OutputType>WinExe</OutputType>
-    <TargetFramework>net8.0-windows</TargetFramework>
-    <Nullable>enable</Nullable>
-    <UseWindowsForms>true</UseWindowsForms>
-    <ImplicitUsings>enable</ImplicitUsings>
-    <Platforms>AnyCPU;x64</Platforms>
-    <AllowUnsafeBlocks>True</AllowUnsafeBlocks>
-  </PropertyGroup>
+	<PropertyGroup>
+		<OutputType>WinExe</OutputType>
+		<TargetFramework>net8.0-windows</TargetFramework>
+		<UseWindowsForms>true</UseWindowsForms>
+		<Nullable>enable</Nullable>
+		<ImplicitUsings>enable</ImplicitUsings>
+		<AllowUnsafeBlocks>true</AllowUnsafeBlocks>
 
-  <ItemGroup>
-    <ProjectReference Include="..\Framework.Renderer\Framework.Renderer.csproj" />
-  </ItemGroup>
+		<!-- Support building the solution as AnyCPU or x64 -->
+		<Platforms>AnyCPU;x64</Platforms>
+		<Prefer32Bit>false</Prefer32Bit>
+		<PlatformTarget>$(Platform)</PlatformTarget>
+
+		<!-- If solution is AnyCPU, build/copy native x64 -->
+		<PreferredNativePlatform Condition="'$(Platform)'=='AnyCPU'">x64</PreferredNativePlatform>
+		<PreferredNativePlatform Condition="'$(PreferredNativePlatform)'==''">$(Platform)</PreferredNativePlatform>
+
+		<!-- Where the native DLL is emitted by the C++ project -->
+		<NativeDllName>RendererNative.dll</NativeDllName>
+		<NativeDllPath>$(SolutionDir)bin\native\$(PreferredNativePlatform)\$(Configuration)\$(NativeDllName)</NativeDllPath>
+	</PropertyGroup>
+
+	<ItemGroup>
+		<!-- Managed wrapper -->
+		<ProjectReference Include="..\Framework.Renderer\Framework.Renderer.csproj" />
+		<!-- Native project (build order only; no managed output) -->
+		<ProjectReference Include="..\RendererNative\RendererNative.vcxproj" ReferenceOutputAssembly="false" />
+	</ItemGroup>
+
+	<ItemGroup>
+	  <None Remove="C:\Users\Tyler\Orion Framework Project\SolarFramework\bin\native\x64\Debug\RendererNative.dll" />
+	</ItemGroup>
+
+	<ItemGroup>
+	  <None Remove="C:\Users\Tyler\Orion Framework Project\SolarFramework\bin\native\x64\Debug\RendererNative.dll" />
+	</ItemGroup>
+
+	<ItemGroup>
+	  <None Remove="C:\Users\Tyler\Orion Framework Project\SolarFramework\bin\native\x64\Debug\RendererNative.dll" />
+	</ItemGroup>
+
+	<!-- Ensure the native DLL ends up next to Game.Solar.exe -->
+	<ItemGroup>
+		<None Include="$(NativeDllPath)">
+			<CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+		</None>
+	</ItemGroup>
+
+	<Target Name="CopyNativeDll" AfterTargets="Build">
+		<Message Text="Copying native DLL from $(NativeDllPath) to $(TargetDir)" Importance="high" />
+		<Error Text="Native DLL not found: $(NativeDllPath). Build RendererNative for $(PreferredNativePlatform)|$(Configuration) first." Condition="!Exists('$(NativeDllPath)')" />
+		<Copy SourceFiles="$(NativeDllPath)" DestinationFolder="$(TargetDir)" SkipUnchangedFiles="true" />
+	</Target>
 
 </Project>
